@@ -187,6 +187,10 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--blue);col
   font-family:'Anton',sans-serif;font-size:2.5rem;color:var(--gold);
   text-shadow:0 0 20px rgba(245,197,24,.5);margin-bottom:1.2rem;line-height:1;
 }
+.modal-meta{
+  font-size:.75rem;letter-spacing:.05em;color:var(--muted);
+  margin-bottom:.9rem;font-weight:600;
+}
 .modal-q{
   font-size:clamp(1.1rem,2.5vw,1.45rem);font-weight:600;line-height:1.5;
   color:var(--white);margin-bottom:1.5rem;min-height:3rem;
@@ -310,6 +314,7 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--blue);col
   <div class="modal">
     <div class="modal-cat" id="modal-cat">CATEGORY</div>
     <div class="modal-pts" id="modal-pts">$200</div>
+    <div class="modal-meta" id="modal-meta"></div>
     <div class="modal-q" id="modal-q">Question text here.</div>
     <div class="modal-answer-box" id="modal-answer-box">
       <div class="answer-label">✅ ANSWER</div>
@@ -334,74 +339,26 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--blue);col
   <button class="btn-restart" onclick="restartGame()">PLAY AGAIN 🎮</button>
 </div>
 
+<script src="questions.js"></script>
 <script>
 // ═══════════════════════════════════════════
-// GAME DATA  —  6 categories × 5 questions
+// GAME DATA  —  6 board columns, mapped to categories in questions.js
+// (PHARR_QUESTIONS is loaded from questions.js, included above this script)
 // ═══════════════════════════════════════════
-const CATEGORIES = [
-  {
-    name: "LEADERSHIP",
-    qs: [
-      { q: "An _____ leader makes you feel encouraged.", a: "Inspirational" },
-      { q: "An _____ leader is one that is expected to be responsible and justify their actions.", a: "Accountable" },
-      { q: "A _____ leader cares more about the needs of others than their own.", a: "Selfless" },
-      { q: "An _____ leader is able to adjust to new conditions.", a: "Adaptable" },
-      { q: "A _____ leader is one that is known to be determined.", a: "Decisive" },
-    ]
-  },
-  {
-    name: "STRATEGY",
-    qs: [
-      { q: "What document guides the City of Pharr's goals and priorities?", a: "The Strategic Plan" },
-      { q: "What department monitors performance, progress, and opportunities in the City of Pharr?", a: "Office of Strategic Excellence (OSE)"},
-      { q: "What two things help keep the City on track with its strategy?", a: "Feedback and performance" },
-      { q: "What do we call the plans used to improve department performance?", a: "Action Plans" },
-      { q: "What kind of decisions does the City of Pharr make?", a: "Data-driven"},
-    ]
-  },
-  {
-    name: "CUSTOMERS",
-    qs: [
-      { q: "Who are the City of Pharr's Key Customers?", a: "Residents" },
-      { q: "Name one way customers can reach Pharr employees.", a: "311, Email/Phone, City Website, City Boards/Council Meetings, Social Media" },
-      { q: "What is the City of Pharr's Mission?", a: "To provide the highest level of municipal services every day." },
-      { q: "What is the City of Pharr's daily commitment?", a: "Excellence Every Day" },
-      { q: "How do you engage your customers and build strong relationships? ", a: "Service excellence and being a part of the community" },
-    ]
-  },
-  {
-    name: "ORGANIZATIONAL INTELLIGENCE",
-    qs: [
-      { q: "What scorecards are used by OSE to track and review performance?", a: "KPI Scorecards" },
-      { q: "What do City of Pharr employees use to submit process improvements?", a: "STEP" },
-      { q: "What is the goal of measuring and analyzing city performance data?", a: "Continuous improvement" },
-      { q: "How often are departments expected to update their performance scorecards?", a: "Monthly" },
-      { q: "What kind of opportunities are worth pursuing in the City of Pharr for better outcomes?", a: "Measurable and actionable opportunities" },
-    ]
-  },
-  {
-    name: "WORKFORCE",
-    qs: [
-      { q: "Name the City of Pharr program dedicated to developing and training staff through 3-4 day sessions.", a: "Pharr U" },
-      { q: "Name the City of Pharr program aimed at developing leaders and leadership in the workforce.", a: "Leadership Cohort" },
-      { q: "What drives the City of Pharr?", a: "Our mission, vision, and values" },
-      { q: "How does the City listen to its employees?", a: "Through surveys, performance reviews, and informal forms of communication" },
-      { q: "What does success look like in the the City of Pharr?", a: "YOU!" },
-    ]
-  },
-  {
-    name: "OPERATIONS",
-    qs: [
-      { q: "What departments contribute to the infrastructure in the City of Pharr?", a: "Public Works, Public Utilities, Bridge, IT, Maintenance, Development Services, Engineering" },
-      { q: "Name departments that improve the quality of life for residents in Pharr.", a: "Parks and Rec, Food Service, Golf, Library, Special Events" },
-      { q: "What departments provide administrative support in the City of Pharr?", a: "OCM, OSE, OCC, Grants, Purchasing, HR, City Clerk, Finance" },
-      { q: "What departments are responsible for providing a Safe and Secure community?", a: "Fire, EMS, Police, Public Safety Comms., Building and Code, Public Health, Court" },
-      { q: "Does the City of Pharr only provide public service when residents ask?", a: "No. Pharr delivers essential services every day." },
-    ]
-  }
+const CATEGORY_DEFS = [
+  { name: "LEADERSHIP",                   key: "Leadership" },
+  { name: "STRATEGY",                     key: "Strategy" },
+  { name: "CUSTOMERS",                    key: "Customers" },
+  { name: "ORGANIZATIONAL INTELLIGENCE",  key: "OI & STEP" },
+  { name: "WORKFORCE",                    key: "Workforce" },
+  { name: "OPERATIONS",                   key: "Operations" },
 ];
 
 const POINT_VALUES = [200, 400, 600, 800, 1000];
+// Row → difficulty mapping: $200/$400 = Easy, $600/$800 = Medium, $1000 = Hard
+const ROW_DIFFICULTIES = ["E", "E", "M", "M", "H"];
+const DIFF_LABELS = { E: "Easy", M: "Medium", H: "Hard" };
+
 const TEAM_COLORS = ['#f3c300','#00679f','#9bc13c','#81d2e8','#fdfbe3','#9d9fa2'];
 
 // ═══════════════════════════════════════════
@@ -411,6 +368,42 @@ let teams = [];
 let usedTiles = new Set(); // "cat-q"
 let currentTile = null;   // {catIdx, qIdx}
 let audioCtx = null;
+let CATEGORIES = [];      // built fresh each game by buildCategoryQuestions()
+
+// ═══════════════════════════════════════════
+// QUESTION SELECTION
+// No repeat questions within a session; a fresh random shuffle every game.
+// ═══════════════════════════════════════════
+function buildCategoryQuestions() {
+  const usedIds = new Set(); // guards against repeats across the whole board this game
+  return CATEGORY_DEFS.map(def => {
+    const pool = PHARR_QUESTIONS.filter(q => q.cat === def.key);
+    const qs = ROW_DIFFICULTIES.map(diff => pickQuestion(pool, diff, usedIds));
+    return { name: def.name, qs };
+  });
+}
+
+function pickQuestion(pool, diff, usedIds) {
+  // 1) Prefer an unused question matching this tile's difficulty
+  let candidates = pool.filter(q => q.diff === diff && !usedIds.has(q.id));
+  // 2) Fall back to any unused question in the category if that difficulty is dry
+  if (candidates.length === 0) {
+    candidates = pool.filter(q => !usedIds.has(q.id));
+  }
+  // 3) Category fully exhausted — show a placeholder instead of crashing
+  if (candidates.length === 0) {
+    return {
+      id: null,
+      diff,
+      q: "No more unique questions available in this category yet — add more to questions.js.",
+      a: "—",
+      src: ""
+    };
+  }
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  usedIds.add(chosen.id);
+  return chosen;
+}
 
 // ═══════════════════════════════════════════
 // AUDIO
@@ -481,6 +474,7 @@ function startGame() {
   document.querySelectorAll('.t-input').forEach((inp,i)=>{ if(teams[i]) teams[i].name = inp.value||`Team ${i+1}`; });
   teams.forEach(t=>t.score=0);
   usedTiles = new Set();
+  CATEGORIES = buildCategoryQuestions(); // fresh random shuffle, no repeats this game
   showScreen('screen-game');
   buildBoard();
   updateScoreboard();
@@ -540,6 +534,9 @@ function openTile(ci, qi) {
 
   document.getElementById('modal-cat').textContent = cat.name;
   document.getElementById('modal-pts').textContent = `$${pts}`;
+  const diffLabel = DIFF_LABELS[q.diff] || q.diff || '';
+  document.getElementById('modal-meta').textContent =
+    [diffLabel, q.src ? `Source: ${q.src}` : ''].filter(Boolean).join('  ·  ');
   document.getElementById('modal-q').textContent = q.q;
   document.getElementById('modal-answer-text').textContent = q.a;
   document.getElementById('modal-answer-box').classList.remove('active');
