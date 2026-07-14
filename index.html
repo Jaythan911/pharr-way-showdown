@@ -336,343 +336,524 @@ html,body{height:100%;font-family:'Barlow',sans-serif;background:var(--blue);col
 
 <script>
 // ═══════════════════════════════════════════
-// GAME DATA  —  6 categories × 5 questions
+// QUESTION BANK
 // ═══════════════════════════════════════════
-const CATEGORIES = [
-  {
-    name: "LEADERSHIP",
-    qs: [
-      { q: "An _____ leader makes you feel encouraged.", a: "Inspirational" },
-      { q: "An _____ leader is one that is expected to be responsible and justify their actions.", a: "Accountable" },
-      { q: "A _____ leader cares more about the needs of others than their own.", a: "Selfless" },
-      { q: "An _____ leader is able to adjust to new conditions.", a: "Adaptable" },
-      { q: "A _____ leader is one that is known to be determined.", a: "Decisive" },
-    ]
-  },
-  {
-    name: "STRATEGY",
-    qs: [
-      { q: "What document guides the City of Pharr's goals and priorities?", a: "The Strategic Plan" },
-      { q: "What department monitors performance, progress, and opportunities in the City of Pharr?", a: "Office of Strategic Excellence (OSE)"},
-      { q: "What two things help keep the City on track with its strategy?", a: "Feedback and performance" },
-      { q: "What do we call the plans used to improve department performance?", a: "Action Plans" },
-      { q: "What kind of decisions does the City of Pharr make?", a: "Data-driven"},
-    ]
-  },
-  {
-    name: "CUSTOMERS",
-    qs: [
-      { q: "Who are the City of Pharr's Key Customers?", a: "Residents" },
-      { q: "Name one way customers can reach Pharr employees.", a: "311, Email/Phone, City Website, City Boards/Council Meetings, Social Media" },
-      { q: "What is the City of Pharr's Mission?", a: "To provide the highest level of municipal services every day." },
-      { q: "What is the City of Pharr's daily commitment?", a: "Excellence Every Day" },
-      { q: "How do you engage your customers and build strong relationships? ", a: "Service excellence and being a part of the community" },
-    ]
-  },
-  {
-    name: "ORGANIZATIONAL INTELLIGENCE",
-    qs: [
-      { q: "What scorecards are used by OSE to track and review performance?", a: "KPI Scorecards" },
-      { q: "What do City of Pharr employees use to submit process improvements?", a: "STEP" },
-      { q: "What is the goal of measuring and analyzing city performance data?", a: "Continuous improvement" },
-      { q: "How often are departments expected to update their performance scorecards?", a: "Monthly" },
-      { q: "What kind of opportunities are worth pursuing in the City of Pharr for better outcomes?", a: "Measurable and actionable opportunities" },
-    ]
-  },
-  {
-    name: "WORKFORCE",
-    qs: [
-      { q: "Name the City of Pharr program dedicated to developing and training staff through 3-4 day sessions.", a: "Pharr U" },
-      { q: "Name the City of Pharr program aimed at developing leaders and leadership in the workforce.", a: "Leadership Cohort" },
-      { q: "What drives the City of Pharr?", a: "Our mission, vision, and values" },
-      { q: "How does the City listen to its employees?", a: "Through surveys, performance reviews, and informal forms of communication" },
-      { q: "What does success look like in the the City of Pharr?", a: "YOU!" },
-    ]
-  },
-  {
-    name: "OPERATIONS",
-    qs: [
-      { q: "What departments contribute to the infrastructure in the City of Pharr?", a: "Public Works, Public Utilities, Bridge, IT, Maintenance, Development Services, Engineering" },
-      { q: "Name departments that improve the quality of life for residents in Pharr.", a: "Parks and Rec, Food Service, Golf, Library, Special Events" },
-      { q: "What departments provide administrative support in the City of Pharr?", a: "OCM, OSE, OCC, Grants, Purchasing, HR, City Clerk, Finance" },
-      { q: "What departments are responsible for providing a Safe and Secure community?", a: "Fire, EMS, Police, Public Safety Comms., Building and Code, Public Health, Court" },
-      { q: "Does the City of Pharr only provide public service when residents ask?", a: "No. Pharr delivers essential services every day." },
-    ]
-  }
+// Add unlimited questions here.
+// diff values:
+// E = Easy
+// M = Medium
+// H = Hard
+//
+// Example:
+// {id:1, cat:"Pharr Way", diff:"E", q:"Question?", a:"Answer.", src:"Source"}
+
+const QUESTION_BANK = [
+  {id:1, cat:"Pharr Way", diff:"E", q:"What are the three pillars of the Pharr Way?", a:"People, Process, and Performance.", src:"Best Practices — The Pharr Way"},
+  {id:2, cat:"Pharr Way", diff:"M", q:"What does the Pharr Way focus on improving?", a:"How the City delivers services through people, processes, and performance.", src:"Best Practices — The Pharr Way"},
+  {id:3, cat:"Leadership", diff:"E", q:"An _____ leader makes you feel encouraged.", a:"Inspirational", src:"Leadership Principles"}, 
+  {id:4, cat:"Leadership", diff:"M", q:"What type of leader adjusts to new conditions?", a:"Adaptable", src:"Leadership Principles"},
+  {id:5, cat:"Leadership", diff:"H", q:"What type of leader is known to be determined?", a:"Decisive", src:"Leadership Principles"}
 ];
 
-const POINT_VALUES = [200, 400, 600, 800, 1000];
-const TEAM_COLORS = ['#f3c300','#00679f','#9bc13c','#81d2e8','#fdfbe3','#9d9fa2'];
+
+// ═══════════════════════════════════════════
+// GAME SETTINGS
+// ═══════════════════════════════════════════
+
+const POINT_VALUES = [200,400,600,800,1000];
+
+const TEAM_COLORS = ['#f3c300', '#00679f', '#9bc13c', '#81d2e8', '#fdfbe3', '#9d9fa2'];
+
+const DIFFICULTY_MAP = {
+  200:"E",
+  400:"E",
+  600:"M",
+  800:"M",
+  1000:"H"
+};
 
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
+
 let teams = [];
-let usedTiles = new Set(); // "cat-q"
-let currentTile = null;   // {catIdx, qIdx}
+let usedQuestions = new Set();
+
+// Stores the questions assigned to tiles
+//
+// Example:
+// {
+//   "Pharr Way-200": {...question},
+//   "Leadership-600": {...question}
+// }
+
+let boardQuestions = {};
+let currentTile = null;
 let audioCtx = null;
+
+// ═══════════════════════════════════════════
+// QUESTION HELPERS
+// ═══════════════════════════════════════════
+
+function getCategories(){
+  return [ ...new Set(QUESTION_BANK.map(q=>q.cat))  ];
+}
+
+function getRandomQuestion(category,difficulty){
+
+  const available =
+    QUESTION_BANK.filter(q => q.cat === category && q.diff === difficulty && !usedQuestions.has(q.id));
+
+  // If category runs out of questions
+  // allow unused difficulty matches
+  if(!available.length){
+
+    const backup = QUESTION_BANK.filter(q => q.cat === category && !usedQuestions.has(q.id));
+    if(!backup.length) return null;
+    const pick = backup[Math.floor(Math.random()*backup.length)];
+    usedQuestions.add(pick.id);
+    return pick;
+  }
+
+  const pick = available[Math.floor(Math.random()*available.length)];
+  usedQuestions.add(pick.id);
+  return pick;
+}
+
+function generateBoardQuestions(){
+  boardQuestions = {};
+  usedQuestions.clear();
+  const categories = getCategories();
+  categories.forEach(category=>{
+    
+    POINT_VALUES.forEach(points=>{
+
+      const question =
+        getRandomQuestion(category, DIFFICULTY_MAP[points]);
+
+      if(question){
+
+        const key = `${category}-${points}`;
+        boardQuestions[key]=question;
+      }
+    });
+  });
+}
 
 // ═══════════════════════════════════════════
 // AUDIO
 // ═══════════════════════════════════════════
-function getAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-function playTone(freq, type, dur, vol=0.3) {
-  try {
-    const ctx = getAudio();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type = type; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    o.start(ctx.currentTime); o.stop(ctx.currentTime + dur);
-  } catch(e){}
-}
-function soundReveal()  { playTone(880,'sine',.12); setTimeout(()=>playTone(1100,'sine',.15),100); }
-function soundCorrect() { [523,659,784].forEach((f,i)=>setTimeout(()=>playTone(f,'sine',.18,0.25),i*80)); }
-function soundWrong()   { playTone(180,'sawtooth',.35,0.2); }
-function soundSelect()  { playTone(660,'sine',.1,0.2); }
-function soundBuzz()    {
-  // Classic Jeopardy-ish buzz: three descending tones
-  [440,330,220].forEach((f,i)=>setTimeout(()=>playTone(f,'square',.1,0.15),i*60));
+
+function getAudio(){
+
+ if(!audioCtx)
+ audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+ return audioCtx;
+
 }
 
+function playTone(freq,type,dur,vol=.3){
+
+  try{
+    const ctx=getAudio();
+    const o=ctx.createOscillator();
+    const g=ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.type=type;
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime+dur);
+    o.start();
+    o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+
+function soundReveal(){
+
+ playTone(880,'sine',.12);
+ setTimeout(()=>playTone(1100,'sine',.15), 100);
+
+}
+
+function soundCorrect(){
+
+ [523,659,784].forEach((f,i) => setTimeout(() => playTone(f,'sine',.18,.25), i*80));
+
+}
+
+function soundWrong(){
+
+ playTone(180,'sawtooth',.35,.2);
+
+}
+
+function soundSelect(){
+
+ playTone(660,'sine',.1,.2);
+
+}
+
+function soundBuzz(){
+
+ [440,330,220].forEach((f,i) => setTimeout(() => playTone(f,'square',.1,.15), i*60));
+
+}
 // ═══════════════════════════════════════════
 // SETUP
 // ═══════════════════════════════════════════
-function initSetup() {
-  teams = [];
-  addTeam('Team 1'); addTeam('Team 2');
-}
-function addTeam(name) {
-  if (teams.length >= 6) return;
-  teams.push({ name: name || `Team ${teams.length+1}`, score: 0 });
-  renderSetupTeams();
-  document.getElementById('btn-addteam').disabled = teams.length >= 6;
-}
-function removeTeam(i) {
-  if (teams.length <= 2) return;
-  teams.splice(i,1); renderSetupTeams();
-  document.getElementById('btn-addteam').disabled = false;
-}
-function renderSetupTeams() {
-  const g = document.getElementById('teams-grid');
-  g.innerHTML = '';
-  teams.forEach((t,i) => {
-    const row = document.createElement('div'); row.className = 'team-row';
-    const dot = document.createElement('div'); dot.className = 't-dot';
-    dot.style.background = TEAM_COLORS[i];
-    const inp = document.createElement('input'); inp.className = 't-input';
-    inp.type='text'; inp.value=t.name; inp.placeholder=`Team ${i+1}`;
-    inp.oninput = () => { teams[i].name = inp.value || `Team ${i+1}`; };
-    const rm = document.createElement('button'); rm.className = 't-remove';
-    rm.textContent = '✕'; rm.title = 'Remove';
-    rm.disabled = teams.length <= 2;
-    rm.onclick = () => removeTeam(i);
-    row.append(dot,inp,rm); g.appendChild(row);
-  });
-  document.getElementById('btn-play').disabled = teams.length < 2;
+
+function initSetup(){
+
+ teams=[];
+ addTeam("Team 1");
+ addTeam("Team 2");
+
 }
 
-function startGame() {
-  document.querySelectorAll('.t-input').forEach((inp,i)=>{ if(teams[i]) teams[i].name = inp.value||`Team ${i+1}`; });
-  teams.forEach(t=>t.score=0);
-  usedTiles = new Set();
-  showScreen('screen-game');
-  buildBoard();
-  updateScoreboard();
+function addTeam(name){
+
+ if(teams.length>=6) return;
+ teams.push({name:name || `Team ${teams.length+1}`, score:0});
+ renderSetupTeams();
+ document.getElementById('btn-addteam').disabled = teams.length>=6;
+
+}
+
+function removeTeam(i){
+
+ if(teams.length<=2) return;
+ teams.splice(i,1);
+ renderSetupTeams();
+
+}
+
+function renderSetupTeams(){
+
+ const g = document.getElementById('teams-grid');
+ g.innerHTML="";
+  teams.forEach((t,i)=>{
+    const row=document.createElement('div');
+    row.className="team-row";
+    const dot=document.createElement('div');
+    dot.className="t-dot";
+    dot.style.background = TEAM_COLORS[i];
+    const input=document.createElement('input');
+    input.className="t-input";
+    input.value=t.name;
+    input.oninput=()=>{
+      teams[i].name = input.value || `Team ${i+1}`;
+
+    };
+    const remove=document.createElement('button');
+    remove.className="t-remove";
+    remove.textContent="✕";
+    remove.disabled=
+    teams.length<=2;
+    remove.onclick=()=>removeTeam(i);
+    row.append(dot, input, remove);
+    g.appendChild(row);
+  });
+
+  document.getElementById('btn-play').disabled = teams.length<2;
+}
+
+function startGame(){
+
+  document.querySelectorAll('.t-input').forEach((inp,i)=>{
+
+    if(teams[i]) teams[i].name = inp.value || `Team ${i+1}`;
+
+  });
+
+
+ teams.forEach(t=>t.score=0);
+ generateBoardQuestions();
+ showScreen('screen-game');
+ buildBoard();
+ updateScoreboard();
+
 }
 
 // ═══════════════════════════════════════════
 // BOARD
 // ═══════════════════════════════════════════
-function buildBoard() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-  // Headers
-  CATEGORIES.forEach(cat => {
-    const h = document.createElement('div'); h.className = 'cat-header';
-    h.textContent = cat.name; board.appendChild(h);
+
+function buildBoard(){
+
+ const board = document.getElementById('board');
+ board.innerHTML='';
+ const categories = getCategories();
+
+ // Category headers
+
+  categories.forEach(cat=>{
+
+    const h=document.createElement('div');
+    h.className='cat-header';
+    h.textContent=cat;
+    board.appendChild(h);
+
   });
-  // Tiles
-  POINT_VALUES.forEach((pts, qi) => {
-    CATEGORIES.forEach((cat, ci) => {
-      const key = `${ci}-${qi}`;
+
+
+ // Tiles
+
+  POINT_VALUES.forEach(points=>{
+
+    categories.forEach(category=>{
+
+
+      const key = `${category}-${points}`;
       const tile = document.createElement('div');
-      tile.className = 'tile' + (usedTiles.has(key) ? ' used' : '');
-      tile.dataset.key = key;
-      const val = document.createElement('div'); val.className = 'tile-val';
-      val.textContent = `$${pts}`; tile.appendChild(val);
-      tile.onclick = () => openTile(ci, qi);
+      tile.className='tile';
+      tile.dataset.key=key;
+      const val = document.createElement('div');
+      val.className='tile-val';
+      val.textContent=`$${points}`;
+      tile.appendChild(val);
+      tile.onclick=()=>openTile(key);
       board.appendChild(tile);
     });
   });
 }
 
-function updateScoreboard() {
-  const sb = document.getElementById('scoreboard');
-  sb.innerHTML = '';
-  teams.forEach((t,i) => {
-    const chip = document.createElement('div'); chip.className = 's-chip';
-    const scoreColor = t.score < 0 ? '#ff4466' : TEAM_COLORS[i];
-    chip.innerHTML = `<div class="s-dot" style="background:${TEAM_COLORS[i]}"></div>
-      <span>${t.name}</span>
-      <strong style="color:${scoreColor}">$${t.score}</strong>`;
+function updateScoreboard(){
+
+ const sb = document.getElementById('scoreboard');
+ sb.innerHTML='';
+  teams.forEach((t,i)=>{
+    const chip = document.createElement('div');
+    chip.className='s-chip';
+    const color = t.score < 0 ? '#ff4466' : TEAM_COLORS[i];
+    chip.innerHTML=`
+    <div class="s-dot"
+    style="background:${TEAM_COLORS[i]}"></div>
+
+    <span>${t.name}</span>
+
+    <strong style="color:${color}">
+    $${t.score}
+    </strong>
+    `;
+
     sb.appendChild(chip);
   });
 }
 
 // ═══════════════════════════════════════════
-// TILE / MODAL
+// TILE / QUESTION MODAL
 // ═══════════════════════════════════════════
-function openTile(ci, qi) {
-  const key = `${ci}-${qi}`;
-  if (usedTiles.has(key)) return;
-  currentTile = { ci, qi, key };
-  soundSelect();
 
-  const cat = CATEGORIES[ci];
-  const q = cat.qs[qi];
-  const pts = POINT_VALUES[qi];
+function openTile(key){
 
-  document.getElementById('modal-cat').textContent = cat.name;
-  document.getElementById('modal-pts').textContent = `$${pts}`;
-  document.getElementById('modal-q').textContent = q.q;
-  document.getElementById('modal-answer-text').textContent = q.a;
-  document.getElementById('modal-answer-box').classList.remove('active');
-  document.getElementById('reveal-btn').style.display = '';
-  document.getElementById('award-section').classList.remove('active');
-  document.getElementById('award-section').style.display = '';
+ const q = boardQuestions[key];
+ if(!q) return;
+ currentTile={key:key, question:q};
+ soundSelect();
+ const points = Number(key.split('-').pop());
+ document.getElementById('modal-cat').textContent=q.cat;
+ document.getElementById('modal-pts').textContent=`$${points}`;
+ document.getElementById('modal-q').textContent=q.q;
+ document.getElementById('modal-answer-text').textContent=q.a;
 
-  // Build award buttons
-  buildAwardButtons(pts);
+ // Source display
 
-  document.getElementById('modal-bg').classList.add('active');
-  soundBuzz();
+ let source = document.getElementById('modal-source');
+  if(source){
+
+    source.textContent =
+    q.src || '';
+
+  }
+
+ document.getElementById('modal-answer-box').classList.remove('active');
+ document.getElementById('reveal-btn').style.display='';
+ document.getElementById('award-section').classList.remove('active');
+ buildAwardButtons(points);
+ document.getElementById('modal-bg').classList.add('active');
+ soundBuzz();
+
 }
 
-function buildAwardButtons(pts) {
-  const container = document.getElementById('award-buttons');
-  container.innerHTML = '';
-  teams.forEach((t, i) => {
+function buildAwardButtons(points){
+
+ const container = document.getElementById('award-buttons');
+ container.innerHTML='';
+ teams.forEach((t,i)=>{
+
     const btn = document.createElement('button');
-    btn.className = 'btn-award correct';
+    btn.className='btn-award correct';
     btn.style.borderColor = TEAM_COLORS[i];
     btn.style.color = TEAM_COLORS[i];
-    btn.style.background = hexAlpha(TEAM_COLORS[i], 0.1);
-    btn.textContent = `✅ ${t.name} +$${pts}`;
-    btn.onclick = () => awardPoints(i, pts);
+    btn.textContent = `✅ ${t.name} +$${points}`;
+    btn.onclick=() => awardPoints(i,points);
     container.appendChild(btn);
+
   });
-  // Deduct buttons
-  teams.forEach((t, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'btn-award wrong';
-    btn.textContent = `❌ ${t.name} -$${pts}`;
-    btn.onclick = () => awardPoints(i, -pts);
-    container.appendChild(btn);
-  });
+
+ teams.forEach((t,i)=>{const btn = document.createElement('button');
+ btn.className='btn-award wrong';
+ btn.textContent = `❌ ${t.name} -$${points}`;
+ btn.onclick=()=> awardPoints(i,-points);
+ container.appendChild(btn);
+
+ });
 }
 
-function revealAnswer() {
-  soundReveal();
-  document.getElementById('modal-answer-box').classList.add('active');
-  document.getElementById('reveal-btn').style.display = 'none';
-  document.getElementById('award-section').classList.add('active');
+function revealAnswer(){
+
+ soundReveal();
+ document.getElementById('modal-answer-box').classList.add('active');
+ document.getElementById('reveal-btn').style.display='none';
+ document.getElementById('award-section').classList.add('active');
+
 }
 
-function awardPoints(teamIdx, pts) {
-  teams[teamIdx].score += pts;
-  if (pts > 0) { soundCorrect(); doFlash('green'); }
-  else { soundWrong(); doFlash('red'); }
-  closeModal(true);
+// ═══════════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════════
+
+function awardPoints(teamIdx,points){
+
+ teams[teamIdx].score += points;
+  if(points>0){
+
+    soundCorrect();
+    doFlash('green');
+
+  }else{
+
+    soundWrong();
+    doFlash('red');
+  
+  }
+
+ closeModal(true);
+
 }
 
-function closeModal(markUsed) {
-  if (markUsed && currentTile) {
-    usedTiles.add(currentTile.key);
+function closeModal(markUsed){
+
+ if(markUsed && currentTile){
+
     const tile = document.querySelector(`.tile[data-key="${currentTile.key}"]`);
-    if (tile) tile.classList.add('used');
+    if(tile)
+      tile.classList.add('used');
+
   }
-  document.getElementById('modal-bg').classList.remove('active');
-  updateScoreboard();
-  currentTile = null;
 
-  // Check if all tiles used
-  if (usedTiles.size >= CATEGORIES.length * POINT_VALUES.length) {
-    setTimeout(showFinal, 600);
-  }
-}
+ document.getElementById('modal-bg').classList.remove('active');
+ updateScoreboard();
+ currentTile=null;
+  const remaining = Object.keys(boardQuestions).some(key=>{
+    return !document.querySelector(`.tile[data-key="${key}"]`)?.classList.contains('used');
 
-function doFlash(color) {
-  const el = document.getElementById('flash');
-  el.className = 'flash';
-  void el.offsetWidth;
-  el.classList.add('active', color);
-  setTimeout(() => el.classList.remove('active','green','red'), 500);
-}
-
-// ═══════════════════════════════════════════
-// FINAL
-// ═══════════════════════════════════════════
-function showFinal() {
-  showScreen('screen-final');
-  const sorted = [...teams].map((t,i)=>({...t,ci:i})).sort((a,b)=>b.score-a.score);
-  const medals = ['🥇','🥈','🥉'];
-  const pod = document.getElementById('podium');
-  pod.innerHTML = '';
-  sorted.forEach((t, rank) => {
-    const row = document.createElement('div');
-    row.className = `p-row r${rank<3?rank+1:'x'}`;
-    row.style.animationDelay = `${rank*0.12}s`;
-    const scoreColor = t.score < 0 ? '#ff4466' : TEAM_COLORS[t.ci];
-    row.innerHTML = `
-      <div class="p-medal">${medals[rank]||rank+1+'.'}</div>
-      <div class="p-name" style="color:${TEAM_COLORS[t.ci]}">${t.name.toUpperCase()}</div>
-      <div class="p-score" style="color:${scoreColor}">$${t.score}</div>
-      <div class="p-pts">PTS</div>`;
-    pod.appendChild(row);
   });
-  fireConfetti();
+
+  if(!remaining){
+
+    setTimeout(
+    showFinal,
+    600
+    );
+  }
 }
 
-function restartGame() {
-  document.querySelectorAll('.cp').forEach(e=>e.remove());
-  showScreen('screen-intro'); initSetup();
+// ═══════════════════════════════════════════
+// FLASH EFFECT
+// ═══════════════════════════════════════════
+
+function doFlash(color){
+
+ const el = document.getElementById('flash');
+ el.className='flash';
+ void el.offsetWidth;
+ el.classList.add('active', color);
+ setTimeout(()=>{el.classList.remove('active', 'green', 'red');},500);
+
 }
 
+// ═══════════════════════════════════════════
+// FINAL SCREEN
+// ═══════════════════════════════════════════
+
+function showFinal(){
+
+ showScreen('screen-final');
+ const sorted = [...teams].map((t,i)=>({...t, ci:i})).sort((a,b)=>b.score-a.score);
+ const medals=['🥇', '🥈', '🥉'];
+ const pod = document.getElementById('podium');
+ pod.innerHTML='';
+ sorted.forEach((t,rank)=>{const row = document.createElement('div');
+ row.className = `p-row r${rank<3 ? rank+1:'x'}`;
+ row.innerHTML=`<div class="p-medal"> ${medals[rank] || rank+1+'.'} </div>
+ <div class="p-name" style="color:${TEAM_COLORS[t.ci]}">
+    ${t.name.toUpperCase()}
+ </div>
+ <div class="p-score">
+    $${t.score}
+ </div>
+ <div class="p-pts">
+    PTS
+ </div>
+ `;
+ pod.appendChild(row);
+ });
+ fireConfetti();
+}
+
+function restartGame(){
+
+ document.querySelectorAll('.cp').forEach(e=>e.remove());
+ showScreen('screen-intro');
+ initSetup();
+
+}
 // ═══════════════════════════════════════════
 // CONFETTI
 // ═══════════════════════════════════════════
-function fireConfetti() {
-  const colors=['#f5c518','#00aaff','#ff5566','#44ff88','#cc77ff','#ff9900','#ffffff'];
-  for(let i=0;i<100;i++) setTimeout(()=>{
-    const el=document.createElement('div'); el.className='cp';
-    el.style.left=Math.random()*100+'vw'; el.style.top='-15px';
-    el.style.background=colors[Math.floor(Math.random()*colors.length)];
-    el.style.width=(5+Math.random()*9)+'px'; el.style.height=(5+Math.random()*9)+'px';
-    el.style.setProperty('--d',(1.5+Math.random()*2.2)+'s');
-    el.style.borderRadius=Math.random()>.5?'50%':'2px';
-    document.body.appendChild(el);
-    setTimeout(()=>el.remove(),4000);
-  },i*35);
-}
 
+
+function fireConfetti(){
+
+ const colors=['#f5c518', '#00aaff', '#ff5566', '#44ff88', '#cc77ff', '#ff9900', '#ffffff'];
+
+  for(let i=0;i<100;i++){
+
+    setTimeout(()=>{
+
+      const el = document.createElement('div');
+      el.className='cp';
+      el.style.left = Math.random()*100+'vw';
+      el.style.top='-15px';
+      el.style.background = colors[Math.floor(Math.random()*colors.length)];
+      el.style.width = (5+Math.random()*9)+'px';
+      el.style.height = (5+Math.random()*9)+'px';
+      el.style.setProperty('--d', (1.5+Math.random()*2.2)+'s');
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 4000);
+    },i*35);
+  }
+}
 // ═══════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function hexAlpha(hex, a) {
-  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-  return `rgba(${r},${g},${b},${a})`;
+function showScreen(id){
+
+ document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+
 }
 
+function hexAlpha(hex,a){
+
+ const r=parseInt(hex.slice(1,3),16);
+ const g=parseInt(hex.slice(3,5),16);
+ const b=parseInt(hex.slice(5,7),16);
+ return `rgba(${r},${g},${b},${a})`;
+
+}
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
